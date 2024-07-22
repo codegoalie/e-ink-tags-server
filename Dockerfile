@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o etag-server ./...
+RUN CGO_ENABLED=0 GOOS=linux go build -o etag-server ./...
 
 FROM alpine:latest
 
@@ -18,4 +18,4 @@ COPY --from=builder /app/etag-server .
 
 EXPOSE 8080
 
-CMD ["./etag-server"]
+CMD ["/etag-server"]
