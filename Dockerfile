@@ -1,21 +1,30 @@
-FROM golang:1.21.4 AS builder
+FROM golang:1.25 AS builder
 
+# Create and change to the app directory.
 WORKDIR /app
 
-COPY go.mod go.sum ./
+# Retrieve application dependencies.
+# This allows the container build to reuse cached dependencies.
+COPY go.* ./
+RUN ["go", "mod", "download"]
 
-RUN go mod download
+# Copy local code to the container image.
+COPY . ./
 
-COPY . .
+# Build the binary.
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+RUN ["go", "build", "-mod=readonly", "-v", "-o", "etag-server"]
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o etag-server ./...
+# Use the official Alpine image for a lean production container.
+# https://hub.docker.com/_/alpine
+# https://docs.docker.com/develop/develop-images/multistage-build/#use-multi-stage-builds
+FROM alpine:3
+RUN ["apk", "add", "--no-cache", "ca-certificates"]
 
-FROM alpine:latest
+# Copy the binary to the production image from the builder stage.
+COPY --from=builder /app/etag-server /etag-server
+COPY --from=builder /app/motivations.db /motivations.db
 
-WORKDIR /
-
-COPY --from=builder /app/etag-server .
-
-EXPOSE 8080
-
+# Run the web service on container startup.
 CMD ["/etag-server"]
