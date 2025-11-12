@@ -32,7 +32,7 @@ func Handler(assets embed.FS, database *db.DB) echo.HandlerFunc {
 		dc.SetRGB(1, 1, 1)
 		dc.Fill()
 
-		// countdown text
+		// motivation text
 		dc.SetRGB(0, 0, 0)
 
 		metropolisTTF, err := assets.ReadFile("assets/Metropolis-Regular.ttf")
@@ -43,15 +43,53 @@ func Handler(assets embed.FS, database *db.DB) echo.HandlerFunc {
 		if err != nil {
 			log.Fatal(err)
 		}
-		daysFace, err := opentype.NewFace(
-			metropolisFont,
-			&opentype.FaceOptions{Size: 64, DPI: 72},
-		)
-		if err != nil {
-			log.Fatal(err)
+
+		// Add padding to avoid text touching edges
+		padding := 10.0
+		maxWidth := width - (2 * padding)
+		maxHeight := height - (2 * padding)
+
+		// Try progressively smaller font sizes until text fits
+		fontSize := 64.0
+		minFontSize := 12.0
+		var lines []string
+		var totalHeight float64
+
+		for fontSize >= minFontSize {
+			face, err := opentype.NewFace(
+				metropolisFont,
+				&opentype.FaceOptions{Size: fontSize, DPI: 72},
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+			dc.SetFontFace(face)
+
+			// Wrap text to fit within maxWidth
+			lines = dc.WordWrap(motivation, maxWidth)
+
+			// Calculate total height needed for all lines
+			_, lineHeight := dc.MeasureString("M") // Measure a sample character for line height
+			totalHeight = float64(len(lines)) * lineHeight
+
+			// Check if it fits within maxHeight
+			if totalHeight <= maxHeight {
+				break
+			}
+
+			// Try smaller font
+			fontSize -= 2.0
 		}
-		dc.SetFontFace(daysFace)
-		dc.DrawStringAnchored(motivation, 180, height/2, 0.5, 0.5)
+
+		// Calculate starting Y position to center text vertically
+		_, lineHeight := dc.MeasureString("M")
+		startY := (height - totalHeight) / 2
+
+		// Draw each line centered
+		for i, line := range lines {
+			y := startY + float64(i)*lineHeight + lineHeight/2
+			dc.DrawStringAnchored(line, width/2, y, 0.5, 0.5)
+		}
 
 		imgBuf := bytes.Buffer{}
 		err = dc.EncodePNG(&imgBuf)
