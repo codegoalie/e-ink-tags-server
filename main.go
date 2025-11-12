@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"embed"
+	"log"
 	"log/slog"
 	"os"
 
+	"github.com/codegoale/e-ink-tag-server/db"
+	"github.com/codegoale/e-ink-tag-server/motivation"
 	echo "github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -38,7 +41,20 @@ func main() {
 		},
 	}))
 
+	// Initialize database
+	database, err := db.New(db.GetDBPath())
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer func() {
+		err := database.Close()
+		if err != nil {
+			log.Printf("Error closing database: %v", err)
+		}
+	}()
+
 	e.GET("/disney-countdown/:days", disneyCountdownHandler)
+	e.GET("/motivation", motivation.Handler(assets, database))
 
 	port := os.Getenv("PORT")
 	if port == "" {
