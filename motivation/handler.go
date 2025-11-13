@@ -83,7 +83,7 @@ func Handler(assets embed.FS, database *db.DB) echo.HandlerFunc {
 
 		// Calculate starting Y position to center text vertically
 		_, lineHeight := dc.MeasureString("M")
-		startY := (height - totalHeight) / 2
+		startY := (height - totalHeight - 10) / 2
 
 		// Draw each line centered
 		for i, line := range lines {
