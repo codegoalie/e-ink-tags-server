@@ -55,6 +55,7 @@ func main() {
 
 	e.GET("/disney-countdown/:days", disneyCountdownHandler)
 	e.GET("/motivation", motivation.Handler(assets, database))
+	e.GET("/render", motivation.RenderHandler(assets))
 
 	port := os.Getenv("PORT")
 	if port == "" {

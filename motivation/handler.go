@@ -13,17 +13,8 @@ import (
 	"golang.org/x/image/font/opentype"
 )
 
-func Handler(assets embed.FS, database *db.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		motivation, err := database.GetRandom()
-		if err != nil {
-			if strings.Contains(err.Error(), "no motivations found") {
-				return c.String(http.StatusNotFound, "No motivations found")
-			}
-			return c.String(http.StatusInternalServerError, "Error retrieving motivation")
-		}
-
-		dc := gg.NewContext(296, 128)
+func RenderText(text string, assets embed.FS) (*bytes.Buffer, error) {
+	dc := gg.NewContext(296, 128)
 
 		// white background
 		height := 128.0
@@ -66,7 +57,7 @@ func Handler(assets embed.FS, database *db.DB) echo.HandlerFunc {
 			dc.SetFontFace(face)
 
 			// Wrap text to fit within maxWidth
-			lines = dc.WordWrap(motivation, maxWidth)
+			lines = dc.WordWrap(text, maxWidth)
 
 			// Calculate total height needed for all lines
 			_, lineHeight := dc.MeasureString("M") // Measure a sample character for line height
@@ -91,12 +82,30 @@ func Handler(assets embed.FS, database *db.DB) echo.HandlerFunc {
 			dc.DrawStringAnchored(line, width/2, y, 0.5, 0.5)
 		}
 
-		imgBuf := bytes.Buffer{}
-		err = dc.EncodePNG(&imgBuf)
+	imgBuf := bytes.Buffer{}
+	err = dc.EncodePNG(&imgBuf)
+	if err != nil {
+		return nil, err
+	}
+
+	return &imgBuf, nil
+}
+
+func Handler(assets embed.FS, database *db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		motivation, err := database.GetRandom()
+		if err != nil {
+			if strings.Contains(err.Error(), "no motivations found") {
+				return c.String(http.StatusNotFound, "No motivations found")
+			}
+			return c.String(http.StatusInternalServerError, "Error retrieving motivation")
+		}
+
+		imgBuf, err := RenderText(motivation, assets)
 		if err != nil {
 			return err
 		}
 
-		return c.Stream(http.StatusOK, "image/png", &imgBuf)
+		return c.Stream(http.StatusOK, "image/png", imgBuf)
 	}
 }
