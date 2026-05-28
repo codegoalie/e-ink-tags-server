@@ -54,9 +54,6 @@ func disneyCountdownHandler(c echo.Context) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dc.SetFontFace(daysFace)
-	dc.DrawStringAnchored(days, 180, height/2, 0.5, 0.5)
-
 	unitFace, err := opentype.NewFace(
 		metropolisFont,
 		&opentype.FaceOptions{Size: 18, DPI: 72},
@@ -64,8 +61,22 @@ func disneyCountdownHandler(c echo.Context) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	dc.SetFontFace(daysFace)
+	daysWidth, _ := dc.MeasureString(days)
 	dc.SetFontFace(unitFace)
-	dc.DrawStringAnchored("days", 250, height/2+16, 0.5, 0.5)
+	unitWidth, _ := dc.MeasureString("days")
+
+	const gap = 8.0
+	const rightAreaStart = 128.0
+	groupWidth := daysWidth + gap + unitWidth
+	groupLeft := rightAreaStart + (width-rightAreaStart-groupWidth)/2
+
+	dc.SetFontFace(daysFace)
+	dc.DrawStringAnchored(days, groupLeft, height/2, 0, 0.5)
+
+	dc.SetFontFace(unitFace)
+	dc.DrawStringAnchored("days", groupLeft+daysWidth+gap, height/2+16, 0, 0.5)
 
 	imgBuf := bytes.Buffer{}
 	err = dc.EncodePNG(&imgBuf)
