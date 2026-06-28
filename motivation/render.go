@@ -1,13 +1,13 @@
 package motivation
 
 import (
-	"embed"
+	"io/fs"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 )
 
-func RenderHandler(assets embed.FS) echo.HandlerFunc {
+func RenderHandler(assets fs.ReadFileFS) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		text := c.QueryParam("text")
 		if text == "" {

@@ -2,7 +2,7 @@ package motivation
 
 import (
 	"bytes"
-	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"strings"
@@ -66,7 +66,7 @@ func fitText(
 	return lines, fontSize, lineHeight
 }
 
-func RenderText(text string, assets embed.FS) (*bytes.Buffer, error) {
+func RenderText(text string, assets fs.ReadFileFS) (*bytes.Buffer, error) {
 	dc := gg.NewContext(296, 128)
 
 	// white background
@@ -116,7 +116,7 @@ func RenderText(text string, assets embed.FS) (*bytes.Buffer, error) {
 	return &imgBuf, nil
 }
 
-func Handler(assets embed.FS, database *db.DB) echo.HandlerFunc {
+func Handler(assets fs.ReadFileFS, database *db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		motivation, err := database.GetRandom()
 		if err != nil {
